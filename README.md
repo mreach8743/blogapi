@@ -79,6 +79,88 @@ For Go applications:
 postgres://bloguser:blogpassword@localhost:5432/blogdb?sslmode=disable
 ```
 
+## Authentication
+
+This API uses JWT (JSON Web Tokens) for authentication. Here's how it works:
+
+1. Register a new user account using the `/users/register` endpoint
+2. Log in with your credentials using the `/users/login` endpoint
+3. Use the returned token in the `Authorization` header for subsequent requests:
+   ```
+   Authorization: Bearer your-token-here
+   ```
+
+### Authentication Endpoints
+
+#### POST /users/register
+Register a new user account.
+
+**Request:**
+```json
+{
+  "username": "johndoe",
+  "email": "john@example.com",
+  "password": "securepassword"
+}
+```
+
+**Response:**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "username": "johndoe",
+    "email": "john@example.com",
+    "date_created": "2023-05-01T12:00:00Z"
+  }
+}
+```
+
+#### POST /users/login
+Log in with existing credentials.
+
+**Request:**
+```json
+{
+  "username": "johndoe",
+  "password": "securepassword"
+}
+```
+
+**Response:**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "username": "johndoe",
+    "email": "john@example.com",
+    "date_created": "2023-05-01T12:00:00Z",
+    "last_login": "2023-05-02T10:30:00Z"
+  }
+}
+```
+
+#### GET /users/me
+Get the current authenticated user's profile.
+
+**Headers:**
+```
+Authorization: Bearer your-token-here
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "username": "johndoe",
+  "email": "john@example.com",
+  "date_created": "2023-05-01T12:00:00Z",
+  "last_login": "2023-05-02T10:30:00Z"
+}
+```
+
 ## API Endpoints
 
 The API server runs on port 8080 by default. To start the server:
@@ -87,9 +169,13 @@ The API server runs on port 8080 by default. To start the server:
 go run main.go
 ```
 
+**Note:** All post-related endpoints require authentication.
+
 ### Testing the API
 
-A test script is provided to verify that all API endpoints are working correctly:
+Test scripts are provided to verify that all API endpoints are working correctly:
+
+#### Basic API Test
 
 ```bash
 # In a separate terminal (after starting the server)
@@ -103,6 +189,20 @@ This script will:
 4. Update the post
 5. Delete the post
 6. Verify the post was deleted
+
+#### Authentication Test
+
+```bash
+# In a separate terminal (after starting the server)
+go run test_auth_api.go
+```
+
+This script will:
+1. Register a new test user
+2. Log in with the test user credentials
+3. Get the current user profile
+4. Create, retrieve, update, and delete posts with authentication
+5. Verify all operations work with the authentication token
 
 If all tests pass, you'll see "All tests passed successfully!" in the console.
 

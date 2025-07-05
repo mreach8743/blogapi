@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"blog2/auth"
 	"blog2/db"
 	"blog2/handlers"
 )
@@ -31,13 +32,34 @@ func main() {
 	defer database.Close()
 	log.Println("Connected to database successfully")
 
+	// Set up JWT configuration
+	jwtConfig := auth.DefaultJWTConfig()
+
 	// Create handlers
 	postsHandler := handlers.NewPostsHandler(database)
+	usersHandler := handlers.NewUsersHandler(database, jwtConfig)
 
 	// Set up routes
 	mux := http.NewServeMux()
-	mux.Handle("/posts", postsHandler)
-	mux.Handle("/posts/", postsHandler)
+
+	// Public routes (no authentication required)
+	mux.Handle("/users/register", usersHandler)
+	mux.Handle("/users/login", usersHandler)
+
+	// Protected routes (authentication required)
+	protectedHandler := auth.RequireAuth(jwtConfig)(postsHandler)
+	mux.Handle("/posts", protectedHandler)
+	mux.Handle("/posts/", protectedHandler)
+
+	// Protected user routes
+	protectedUserHandler := auth.RequireAuth(jwtConfig)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/users/me" {
+			usersHandler.ServeHTTP(w, r)
+		} else {
+			http.NotFound(w, r)
+		}
+	}))
+	mux.Handle("/users/me", protectedUserHandler)
 
 	// Add middleware for logging
 	handler := logMiddleware(mux)
